@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -309,10 +310,14 @@ SCAN:
 						err = errors.New("EOF found after escape character")
 						break SCAN
 					}
-				case RUNETOKEN_CHAR, RUNETOKEN_SPACE, RUNETOKEN_ESCAPING_QUOTE, RUNETOKEN_NONESCAPING_QUOTE, RUNETOKEN_ESCAPE, RUNETOKEN_COMMENT:
+				case RUNETOKEN_NONESCAPING_QUOTE, RUNETOKEN_SPACE, RUNETOKEN_COMMENT: // shell escapes
+					{
+						value = append(value, nextRune)
+					}
+				case RUNETOKEN_CHAR, RUNETOKEN_ESCAPING_QUOTE, RUNETOKEN_ESCAPE:
 					{
 						state = STATE_INWORD
-						value = append(value, nextRune)
+						value = append(value, '\\', nextRune)
 					}
 				default:
 					{
@@ -331,7 +336,7 @@ SCAN:
 				case RUNETOKEN_CHAR, RUNETOKEN_SPACE, RUNETOKEN_ESCAPING_QUOTE, RUNETOKEN_NONESCAPING_QUOTE, RUNETOKEN_ESCAPE, RUNETOKEN_COMMENT:
 					{
 						state = STATE_QUOTED_ESCAPING
-						value = append(value, nextRune)
+						value = append(value, '\\', nextRune)
 					}
 				default:
 					{
@@ -373,7 +378,13 @@ SCAN:
 						err = errors.New("EOF found when expecting closing quote.")
 						break SCAN
 					}
-				case RUNETOKEN_CHAR, RUNETOKEN_UNKNOWN, RUNETOKEN_SPACE, RUNETOKEN_ESCAPING_QUOTE, RUNETOKEN_ESCAPE, RUNETOKEN_COMMENT:
+				case RUNETOKEN_ESCAPE, RUNETOKEN_ESCAPING_QUOTE:
+					{
+						// Escape these literals, since they mean something when
+						// unquoting
+						value = append(value, '\\', nextRune)
+					}
+				case RUNETOKEN_CHAR, RUNETOKEN_UNKNOWN, RUNETOKEN_SPACE, RUNETOKEN_COMMENT:
 					{
 						value = append(value, nextRune)
 					}
@@ -419,9 +430,13 @@ SCAN:
 			}
 		}
 	}
+	unquoted, err := strconv.Unquote(`"` + string(value) + `"`)
+	if err != nil {
+		return nil, fmt.Errorf("escape sequence wrong: %v", err)
+	}
 	token := &Token{
 		tokenType: tokenType,
-		value:     string(value)}
+		value:     unquoted}
 	return token, err
 }
 
