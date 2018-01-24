@@ -453,5 +453,4 @@ func Split(s string) ([]string, error) {
 		}
 		subStrings = append(subStrings, word)
 	}
-	return subStrings, nil
 }
