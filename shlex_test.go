@@ -19,6 +19,8 @@ package shlex
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func checkError(err error, t *testing.T) {
@@ -159,4 +161,21 @@ func TestSplitNonEscapingQuotes(t *testing.T) {
 			t.Error("Item:", i, "(", foundOutput[i], ") differs from the expected value:", expectedOutput[i])
 		}
 	}
+}
+
+func TestGoEscapes(t *testing.T) {
+	testInput := `a\tb 'a\tb' "a\tb" "a\"b" "a\\b"`
+	expectedOutput := []string{"a\tb", "a\\tb", "a\tb", "a\"b", "a\\b"}
+	foundOutput, err := Split(testInput)
+	require.NoError(t, err)
+	require.Equal(t, expectedOutput, foundOutput)
+}
+
+func TestSpecialEscapes(t *testing.T) {
+	testInput := `\' \  \" \\`
+	expectedOutput := []string{"'", " ", "\"", "\\"}
+	foundOutput, err := Split(testInput)
+	require.NoError(t, err)
+	require.Equal(t, expectedOutput, foundOutput)
+
 }
