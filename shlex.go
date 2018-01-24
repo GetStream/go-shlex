@@ -310,8 +310,11 @@ SCAN:
 						err = errors.New("EOF found after escape character")
 						break SCAN
 					}
-				case RUNETOKEN_NONESCAPING_QUOTE, RUNETOKEN_SPACE, RUNETOKEN_COMMENT: // shell escapes
+				case RUNETOKEN_NONESCAPING_QUOTE, RUNETOKEN_SPACE, RUNETOKEN_COMMENT:
 					{
+						// shell escapes don't need to be escaped again for Go
+						// escaping
+						state = STATE_INWORD
 						value = append(value, nextRune)
 					}
 				case RUNETOKEN_CHAR, RUNETOKEN_ESCAPING_QUOTE, RUNETOKEN_ESCAPE:
